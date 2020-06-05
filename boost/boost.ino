@@ -10,6 +10,19 @@
 
 #include <Wire.h>
 #include "SparkFunBME280.h"
+
+#include <SPI.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define OLED_RESET -1
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
+
 BME280 mySensor;
 
 // Bosch MAP sensor setup
@@ -42,6 +55,15 @@ void setup() {
   mySensor.setFilter(4);
   mySensor.setPressureOverSample(3);
 
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+  delay(2000);
+
+
+
+
 } 
     
 void loop() { 
@@ -64,5 +86,13 @@ void loop() {
           Serial.println("The buffers are full");
         }
       }
+        display.clearDisplay();
+          display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 10);
+        display.print(psiDifference.psiPabsFloat);
+        display.print(" PSI");
+        display.display(); 
+
   }
 }
