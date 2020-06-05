@@ -30,7 +30,7 @@ int mapsen = 26; // Set MAP sensor input on Analog port 0
 
 // float value and value in bytes
 typedef union {
-  float psiPabsFloat;
+  int psiPabsInt;
   byte psiPabsByte[4];
 } psiPabs;
 
@@ -74,21 +74,20 @@ void loop() {
       float Pabs = 3294.11764705*(out_voltage/4.764)-279.99999999925; //4.764 measured as input voltage using multimeter
   
       // pressure in PSI from Bosch MAP minus BME280 + .5 as that seemed to be a consistent difference
-      psiDifference.psiPabsFloat = ((Pabs / 68.947572932) - (mySensor.readFloatPressure() * 0.0001450377)) + .5;
-      psiDifference.psiPabsFloat = floor(psiDifference.psiPabsFloat*10+0.5)/10; //round to nearest tenth
+      Pabs = ((Pabs / 68.94) - (mySensor.readFloatPressure() * 0.0001450377)) + .5;
+      psiDifference.psiPabsInt = round(Pabs);//floor(psiDifference.psiPabsFloat*10+0.5)/10; //round to nearest tenth
 
-      if (psiDifference.psiPabsFloat != 0) {
-        if (Serial1.availableForWrite() > 0) {
-          Serial1.write(psiDifference.psiPabsByte,4);
-        } else {
-          Serial.println("The buffers are full");
-        }
+      if (Serial1.availableForWrite() > 0) {
+        Serial1.write(psiDifference.psiPabsByte,4);
+      } else {
+        Serial.println("The buffers are full");
       }
+      
         display.clearDisplay();
         display.setTextSize(2);
         display.setTextColor(WHITE);
         display.setCursor(0, 10);
-        display.print(psiDifference.psiPabsFloat);
+        display.print(psiDifference.psiPabsInt);
         display.print(" PSI");
         display.display(); 
 
