@@ -43,7 +43,7 @@ const long interval = 250;
 
 
 void setup() { 
-  Serial.begin(115200);
+  Serial1.begin(115200, SERIAL_8N1, 16, 17);
   Wire.begin();
 
   if (mySensor.beginI2C() == false) //Begin communication over I2C
@@ -52,17 +52,14 @@ void setup() {
     while(1); //Freeze
   }
 
-  mySensor.setFilter(4);
-  mySensor.setPressureOverSample(3);
+  //mySensor.setFilter(4);
+  //mySensor.setPressureOverSample(3);
 
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
   }
   delay(2000);
-
-
-
 
 } 
     
@@ -77,19 +74,20 @@ void loop() {
       float Pabs = 3294.11764705*(out_voltage/4.764)-279.99999999925; //4.764 measured as input voltage using multimeter
   
       // pressure in PSI from Bosch MAP minus BME280 + .5 as that seemed to be a consistent difference
-      psiDifference.psiPabsFloat = ((Pabs / 68.947572932) - (mySensor.readFloatPressure() * 0.0001450377)) + .5;//(mpr.readPressure() / 68.947572932); 
+      psiDifference.psiPabsFloat = ((Pabs / 68.947572932) - (mySensor.readFloatPressure() * 0.0001450377)) + .5;
+      psiDifference.psiPabsFloat = floor(psiDifference.psiPabsFloat*10+0.5)/10; //round to nearest tenth
 
       if (psiDifference.psiPabsFloat != 0) {
-        if (Serial.availableForWrite() > 0) {
-          Serial.write(psiDifference.psiPabsByte,4);
+        if (Serial1.availableForWrite() > 0) {
+          Serial1.write(psiDifference.psiPabsByte,4);
         } else {
           Serial.println("The buffers are full");
         }
       }
         display.clearDisplay();
-          display.setTextSize(2);
-  display.setTextColor(WHITE);
-  display.setCursor(0, 10);
+        display.setTextSize(2);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 10);
         display.print(psiDifference.psiPabsFloat);
         display.print(" PSI");
         display.display(); 
