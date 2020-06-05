@@ -14,11 +14,20 @@ BME280 mySensor;
 
 // Bosch MAP sensor setup
 int mapsen = 26; // Set MAP sensor input on Analog port 0 
-float psiPabs; // for converting our value in mbar to psi
+
+// float value and value in bytes
+typedef union {
+  float psiPabsFloat;
+  byte psiPabsByte[4];
+} psiPabs;
+
+psiPabs psiDifference;
+//float psiPabs; // for converting our value in mbar to psi
 
 //non blocking delay using millis from https://randomnerdtutorials.com/why-you-shouldnt-always-use-the-arduino-delay-function/
 unsigned long previousMillis = 0;
 const long interval = 250;
+
 
 void setup() { 
   Serial.begin(115200);
@@ -46,9 +55,14 @@ void loop() {
       float Pabs = 3294.11764705*(out_voltage/4.764)-279.99999999925; //4.764 measured as input voltage using multimeter
   
       // pressure in PSI from Bosch MAP minus BME280 + .5 as that seemed to be a consistent difference
-      psiPabs = ((Pabs / 68.947572932) - (mySensor.readFloatPressure() * 0.0001450377)) + .5;//(mpr.readPressure() / 68.947572932); 
+      psiDifference.psiPabsFloat = ((Pabs / 68.947572932) - (mySensor.readFloatPressure() * 0.0001450377)) + .5;//(mpr.readPressure() / 68.947572932); 
 
-      Serial.println(psiPabs);
-
+      if (psiDifference.psiPabsFloat != 0) {
+        if (Serial.availableForWrite() > 0) {
+          Serial.write(psiDifference.psiPabsByte,4);
+        } else {
+          Serial.println("The buffers are full");
+        }
+      }
   }
 }
