@@ -5,7 +5,6 @@
  * OEM Part Number   0281002401, 038 906 051 C, 038906051C 
  * 
  * TODO : Figure out curve for temperature sensor and log air temp
- * 
  */
 
 #include <Wire.h>
@@ -52,8 +51,9 @@ void setup() {
     while(1); //Freeze
   }
 
-  //mySensor.setFilter(4);
-  //mySensor.setPressureOverSample(3);
+  //Use "Game mode" according to honeyewll datasheet
+  mySensor.setFilter(4);
+  mySensor.setPressureOverSample(3);
 
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
@@ -75,8 +75,14 @@ void loop() {
   
       // pressure in PSI from Bosch MAP minus BME280 + .5 as that seemed to be a consistent difference
       Pabs = ((Pabs / 68.94) - (mySensor.readFloatPressure() * 0.0001450377)) + .5;
-      psiDifference.psiPabsInt = round(Pabs);//floor(psiDifference.psiPabsFloat*10+0.5)/10; //round to nearest tenth
+      
+      // Uncommment lines 80 - 82 and comment line 84 to use for testing when car is unavailable 
+      /*long randomNum = random(-20,20);
+      int randomInt = (int)randomNum;
+      psiDifference.psiPabsInt = round(Pabs) + randomInt*/;//floor(psiDifference.psiPabsFloat*10+0.5)/10; //round to nearest tenth
 
+      psiDifference.psiPabsInt = round(Pabs);
+      
       if (Serial1.availableForWrite() > 0) {
         Serial1.write(psiDifference.psiPabsByte,4);
       } else {
@@ -90,6 +96,5 @@ void loop() {
         display.print(psiDifference.psiPabsInt);
         display.print(" PSI");
         display.display(); 
-
   }
 }
