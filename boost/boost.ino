@@ -51,9 +51,9 @@ void setup() {
     while(1); //Freeze
   }
 
-  //Use "Game mode" according to honeyewll datasheet
+  /*Use "Game mode" according to honeyewll datasheet
   mySensor.setFilter(4);
-  mySensor.setPressureOverSample(3);
+  mySensor.setPressureOverSample(3);*/
 
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
@@ -74,7 +74,7 @@ void loop() {
       float Pabs = 3294.11764705*(out_voltage/4.764)-279.99999999925; //4.764 measured as input voltage using multimeter
   
       // pressure in PSI from Bosch MAP minus BME280 + .5 as that seemed to be a consistent difference
-      Pabs = ((Pabs / 68.94) - (mySensor.readFloatPressure() * 0.0001450377)) + .5;
+      Pabs = ((Pabs / 68.94) //- (mySensor.readFloatPressure() * 0.0001450377)) + .5;
       
       // Uncommment lines 80 - 82 and comment line 84 to use for testing when car is unavailable 
       /*long randomNum = random(-20,20);
