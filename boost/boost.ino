@@ -21,7 +21,7 @@
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
-
+float atmpressure;
 BME280 mySensor;
 
 // Bosch MAP sensor setup
@@ -51,9 +51,10 @@ void setup() {
     while(1); //Freeze
   }
 
-  /*Use "Game mode" according to honeyewll datasheet
+  //Use "Game mode" according to honeyewll datasheet
   mySensor.setFilter(4);
-  mySensor.setPressureOverSample(3);*/
+  mySensor.setPressureOverSample(3);
+  atmpressure = mySensor.readFloatPressure() * 0.0001450377;
 
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
@@ -71,17 +72,53 @@ void loop() {
       float out_voltage = analogRead(mapsen) / 1000.000000; //esp32 is reading in millivolts so let's convert to volts for our curve to work
   
       // forumula derived from https://www.youtube.com/watch?v=83LuzJTIbAw&list=PLZ73CAxmn6f3F2Muguy2oU4sQEykYiTsw&index=5&t=375s
-      float Pabs = 3294.11764705*(out_voltage/4.764)-279.99999999925; //4.764 measured as input voltage using multimeter
+      float Pabs = 3294.11764705*(out_voltage/4.68)-279.99999999925; 
+      /*4.764 from laptop
+       * 4.679 - 4.8 from car stereo usb out
+       * 
+      */
   
       // pressure in PSI from Bosch MAP minus BME280 + .5 as that seemed to be a consistent difference
-      Pabs = ((Pabs / 68.94) //- (mySensor.readFloatPressure() * 0.0001450377)) + .5;
+      Pabs = (Pabs / 68.94); //- (mySensor.readFloatPressure() * 0.0001450377)) + .5;
+
+
+        display.clearDisplay();
+        display.setTextSize(2);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 0);
+        
+
+      
+      //convert to inHG if needed
+      if (Pabs <= atmpressure) {
+        Pabs = Pabs*2.036020657601236; //convert to inhg
+        psiDifference.psiPabsInt = round(Pabs);
+       /* Serial.println(inHG);
+        Serial.println(Pabs);
+        Serial.println(atmpressure);*/
+        display.print(psiDifference.psiPabsInt);
+        display.print(" inHG");
+        display.display(); 
+      }
+      else {
+        psiDifference.psiPabsInt = round(Pabs) - round(atmpressure);
+        /*Serial.println(psi);
+        Serial.println(Pabs);
+        Serial.println(atmpressure);*/
+        display.print(psiDifference.psiPabsInt);
+        display.print(" PSI");
+        display.display(); 
+      }
+
+
       
       // Uncommment lines 80 - 82 and comment line 84 to use for testing when car is unavailable 
       /*long randomNum = random(-20,20);
       int randomInt = (int)randomNum;
-      psiDifference.psiPabsInt = round(Pabs) + randomInt*/;//floor(psiDifference.psiPabsFloat*10+0.5)/10; //round to nearest tenth
+      psiDifference.psiPabsInt = round(Pabs) + randomInt*///floor(psiDifference.psiPabsFloat*10+0.5)/10; //round to nearest tenth
 
-      psiDifference.psiPabsInt = round(Pabs);
+      
+      
       
       if (Serial1.availableForWrite() > 0) {
         Serial1.write(psiDifference.psiPabsByte,4);
@@ -89,12 +126,7 @@ void loop() {
         Serial.println("The buffers are full");
       }
       
-        display.clearDisplay();
-        display.setTextSize(2);
-        display.setTextColor(WHITE);
-        display.setCursor(0, 10);
-        display.print(psiDifference.psiPabsInt);
-        display.print(" PSI");
-        display.display(); 
+
+
   }
 }
