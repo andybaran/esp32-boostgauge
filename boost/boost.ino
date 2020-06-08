@@ -19,7 +19,7 @@
 #define OLED_RESET -1
 
 // Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 float atmpressure;
 BME280 mySensor;
@@ -79,47 +79,39 @@ void loop() {
       */
   
       // pressure in PSI from Bosch MAP minus BME280 + .5 as that seemed to be a consistent difference
-      Pabs = (Pabs / 68.94); //- (mySensor.readFloatPressure() * 0.0001450377)) + .5;
-
-
+      Pabs = (Pabs / 68.94) - atmpressure; // Convert mbar to PSI and subtract ambient so we can calculate vacuum as well
+      
         display.clearDisplay();
         display.setTextSize(2);
         display.setTextColor(WHITE);
         display.setCursor(0, 0);
-        
-
       
-      //convert to inHG if needed
-      if (Pabs <= atmpressure) {
-        Pabs = Pabs*2.036020657601236; //convert to inhg
+      //if value is less than atmostpheric pressure convert to inhg and display vacuum
+      if (Pabs < 0) {
+        Pabs = -1*(Pabs*2.036020657601236); //convert to inhg
         psiDifference.psiPabsInt = round(Pabs);
        /* Serial.println(inHG);
         Serial.println(Pabs);
         Serial.println(atmpressure);*/
         display.print(psiDifference.psiPabsInt);
-        display.print(" inHG");
+        display.print(" inHG.");
         display.display(); 
       }
       else {
-        psiDifference.psiPabsInt = round(Pabs) - round(atmpressure);
+        psiDifference.psiPabsInt = round(Pabs);
         /*Serial.println(psi);
         Serial.println(Pabs);
         Serial.println(atmpressure);*/
         display.print(psiDifference.psiPabsInt);
-        display.print(" PSI");
+        display.print(" PSI.");
         display.display(); 
       }
-
-
       
       // Uncommment lines 80 - 82 and comment line 84 to use for testing when car is unavailable 
       /*long randomNum = random(-20,20);
       int randomInt = (int)randomNum;
       psiDifference.psiPabsInt = round(Pabs) + randomInt*///floor(psiDifference.psiPabsFloat*10+0.5)/10; //round to nearest tenth
 
-      
-      
-      
       if (Serial1.availableForWrite() > 0) {
         Serial1.write(psiDifference.psiPabsByte,4);
       } else {
