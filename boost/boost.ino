@@ -13,14 +13,15 @@
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
-#define OLED_RESET -1
-
+#define OLED_RESET -1 // OLED_RESET pin is not hooked up
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
 float atmpressure;
 BME280 mySensor;
 float out_voltage;
 float Pabs;
+float inHgPabs;
+int roundedPabs;
 int mapsen = A0; // Set MAP sensor input on Analog port 0 
 unsigned long previousMillis = 0;
 const long interval = 250;
@@ -36,31 +37,32 @@ psiPabs psiDifference;
 
 
 void setup() { 
-  Serial1.begin(115200);//, SERIAL_8N1, 16, 17);
+  //SeraSerial1.begin(115200);//, SERIAL_8N1, 16, 17);
   Serial.begin(115200);
   Wire.begin();
 
+  //Verify BME280 is connected
   if (mySensor.beginI2C() == false) //Begin communication over I2C
   {
     Serial.println("BME280 did not respond. Please check wiring.");
     while(1); //Freeze
   }
 
-  //Use "Game mode" according to honeyewll datasheet
+  //Calibrate BME280 for "Game mode" according to honeyewll datasheet
   mySensor.setFilter(4);
   mySensor.setPressureOverSample(3);
 
+  //Verify display is connected
   if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
     Serial.println(F("SSD1306 allocation failed"));
     for(;;);
   }
-  delay(2000);
-
+  //delay(2000);
 } 
     
 void loop() { 
 
-  //non blocking delay using millis from https://randomnerdtutorials.com/why-you-shouldnt-always-use-the-arduino-delay-function/
+  //non blocking delay using millis instead of delay()
   unsigned long currentMillis = millis();
   if (currentMillis - previousMillis >= interval) {
       previousMillis = currentMillis;
@@ -79,8 +81,8 @@ void loop() {
       
       //if value is less than atmostpheric pressure convert to inhg and display vacuum
       if (Pabs < 0) {
-        Pabs = -1*(Pabs*2.036020657601236); //convert to inhg
-        psiDifference.psiPabsInt = round(Pabs);
+        inHgPabs = -1*(Pabs*2.036020657601236); //convert to inhg
+        psiDifference.psiPabsInt = round(inHgPabs);
         display.print(psiDifference.psiPabsInt);
         display.print(" inHG\n");
       }
@@ -91,14 +93,24 @@ void loop() {
         display.print(" PSI\n");
       }
 
+
+      roundedPabs = int(round(Pabs));
+      
       //update max and min
-      if (psiDifference.psiPabsInt < max) {max = psiDifference.psiPabsInt;}
-      if (psiDifference.psiPabsInt > min) {min = psiDifference.psiPabsInt;}
+      if (roundedPabs > max) {max = roundedPabs;}
+      if (roundedPabs < min) {min = roundedPabs;}
       
       display.print(String("\nmax: ") + String(max));
       display.print(String("\nmin: ") + String(min));
       display.display(); 
 
+      //Comment these lines when car is connected and started
+      //int rando = 11;//int(random(10,20));
+      //psiDifference.psiPabsInt = psiDifference.psiPabsInt + rando;
+      
+      //Raspberry PI is expecting raw value with negatives being inHG
+      psiDifference.psiPabsInt = roundedPabs;
+      
       if (Serial.availableForWrite() > 0) {
         Serial.write(psiDifference.psiPabsByte,4);
       } else {
