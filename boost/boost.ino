@@ -18,14 +18,16 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
 float atmpressure;
 BME280 mySensor;
+
 float out_voltage;
 float Pabs;
 float inHgPabs;
-int roundedPabs;
+int piPabs;
+
 int mapsen = A0; // Set MAP sensor input on Analog port 0 
 unsigned long previousMillis = 0;
 const long interval = 250;
-int min = 0;
+int min = 20;
 int max = 0;
 
 typedef union {
@@ -58,6 +60,10 @@ void setup() {
     for(;;);
   }
   //delay(2000);
+
+  //Display Properties
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
 } 
     
 void loop() { 
@@ -67,50 +73,50 @@ void loop() {
   if (currentMillis - previousMillis >= interval) {
       previousMillis = currentMillis;
       atmpressure = mySensor.readFloatPressure() * 0.0001450377;
-      out_voltage = analogRead(mapsen) * (5.0/1023);
-  
+      
+      //out_voltage = analogRead(mapsen) * (5.0/1023);
+      out_voltage = random(0,5);
+      
       Pabs =  311.1111111 * (out_voltage/4.97) - 1.333333333;
   
-      // pressure in PSI from Bosch MAP minus BME280 + .5 as that seemed to be a consistent difference, trusting Bosch as more accurate
-      Pabs = round((Pabs / 6.894)) - round(atmpressure +.5); // Convert kPa to PSI and subtract ambient so we can calculate vacuum as well
+      // round(conver to from kPa to SPI) - round(ambient pressure + .5) so we can calc vacuum when needed
+      // Ambient  about .5 off from Bosch reading and I trust that sensor more
+      Pabs = round((Pabs / 6.894)) - round(atmpressure +.5);
       
+      
+      
+
+      //Clear and set the cursor position
       display.clearDisplay();
-      display.setTextSize(2);
-      display.setTextColor(WHITE);
       display.setCursor(0, 0);
       
       //if value is less than atmostpheric pressure convert to inhg and display vacuum
       if (Pabs < 0) {
         inHgPabs = -1*(Pabs*2.036020657601236); //convert to inhg
         psiDifference.psiPabsInt = round(inHgPabs);
+        piPabs = -psiDifference.psiPabsInt + 100; //Store value for pi before conversion to inHg; we add 100 to be lazy and not do 2's complement math on the other end
         display.print(psiDifference.psiPabsInt);
         display.print(" inHG\n");
       }
       
       else {
         psiDifference.psiPabsInt = round(Pabs);
+        piPabs = psiDifference.psiPabsInt;
         display.print(psiDifference.psiPabsInt);
         display.print(" PSI\n");
       }
 
-
-      roundedPabs = int(round(Pabs));
-      
       //update max and min
-      if (roundedPabs > max) {max = roundedPabs;}
-      if (roundedPabs < min) {min = roundedPabs;}
+      if (psiDifference.psiPabsInt  > max) {max = psiDifference.psiPabsInt;}
+      if (psiDifference.psiPabsInt  < min) {min = psiDifference.psiPabsInt;}
       
       display.print(String("\nmax: ") + String(max));
       display.print(String("\nmin: ") + String(min));
       display.display(); 
-
-      //Comment these lines when car is connected and started
-      //int rando = 11;//int(random(10,20));
-      //psiDifference.psiPabsInt = psiDifference.psiPabsInt + rando;
       
       //Raspberry PI is expecting raw value with negatives being inHG
-      psiDifference.psiPabsInt = roundedPabs;
-      
+      psiDifference.psiPabsInt = piPabs;
+
       if (Serial.availableForWrite() > 0) {
         Serial.write(psiDifference.psiPabsByte,4);
       } else {
