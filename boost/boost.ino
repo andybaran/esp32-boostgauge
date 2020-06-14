@@ -74,8 +74,8 @@ void loop() {
       previousMillis = currentMillis;
       atmpressure = mySensor.readFloatPressure() * 0.0001450377;
       
-      //out_voltage = analogRead(mapsen) * (5.0/1023);
-      out_voltage = random(0,5);
+      out_voltage = analogRead(mapsen) * (5.0/1023);
+      // out_voltage = random(0,5); use for testing when not hooked up
       
       Pabs =  311.1111111 * (out_voltage/4.97) - 1.333333333;
   
