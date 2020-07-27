@@ -1,3 +1,1 @@
-I have mostly abandoned this code and moved to using an arduino mega as my collector of raw values from the MAF sensor. **PLEASE MAKE SURE TO USE THE CURVES DOCUMENTED IN THE REPO BELOW :) As of 25-July-2020, the curve formula for sensor I'm using is incorrect in this repo.** I will remove this note when I have time to update. I am going to leave this repo available as I learned some good lessons about working with M5's implementation of the esp32 chip during the process and it will serve as a good reference for future projects.  Particularly those where I want an easy way to prototype collection and display of data from a 5V analyog sensor.
 
-That code can be found here : https://github.com/andybaran/mega-boostgauge
